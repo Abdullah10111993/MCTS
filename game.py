@@ -6,8 +6,8 @@ class node:
 		self.board_state = state
 		self.parent = parent
 		self.children = []
-		self.is_visitted = False
-		self.vists = 0
+		self.is_visited = False
+		self.visits = 0
 		self.wins = 0
 		self.ai_player = player
 		self.player = player
@@ -17,19 +17,17 @@ class node:
 			copy = self.board_state.copy()
 			if self.board_state[i] == -1:
 				copy[i] = 1 if self.player == 1 else 0
-				child_player = 0 if self.player == 1 else 1
+				child_player = 1 - self.player
 				self.children.append(node(copy,self,child_player))
 
 def non_terminal(node):
-	if -1 in node.board_state:
-		return True
-	else:
-		return False
+	return -1 in node.board_state
 
 def fully_expanded(node):
 	for c in node.children:
 		if c.is_visitted == False:
 			return False
+	return True
 
 def pick_univisted(node):
 	for c in node.children:
@@ -41,8 +39,8 @@ def best_uct(node):
 	best_winrate = 0
 	best_node = 0
 	for c in node.children:
-		if c.vists != 0:
-			winrate = c.wins/c.vists
+		if c.visits != 0:
+			winrate = c.wins/c.visits
 		else:
 			winrate = 0
 		if winrate > best_winrate:
@@ -96,6 +94,7 @@ def result(node):
 		return 0
 
 def rollout(node):
+	node.is_visited = True
 	while non_terminal(node):
 		node = rollout_policy(node)
 	return result(node) 
@@ -104,7 +103,7 @@ def backpropagate(node, result):
 	if node.parent == None:
 		return
 	node.wins += result
-	node.vists += 1 
+	node.visits += 1 
 	backpropagate(node.parent, result)
 
 def monte_carlo_tree_search(root, allowed_time):
@@ -114,9 +113,6 @@ def monte_carlo_tree_search(root, allowed_time):
 		leaf = traverse(root) # leaf = unvisited node 
 		simulation_result = rollout(leaf)
 		backpropagate(leaf, simulation_result)
-		# for c in root.children:
-		# 	print(c.wins)
-		# 	print(c.vists)
 	return best_uct(root)
 
 def ai_play(board,ai_player):
@@ -146,21 +142,7 @@ letter_map = {'X' : 1, 'O' : 0}
 tictacBoard = [-1, -1, -1, -1, -1, -1, -1, -1, -1]
 ai_player = 'X' 
 user = 'O'
-# while True:
-# 	printBoard(tictacBoard)
-# 	player_input = int(input(str(turn)+" turn. Input Position: "))
-# 	tictacBoard[player_input-1] = turn_dict[turn]
-# 	win = check_win(tictacBoard)
-# 	if win == 2:
-# 		print("its a draw")
-# 		break
-# 	elif win == 1:
-# 		print("X Won!!!")
-# 		break
-# 	elif win == 0:
-# 		print("O Won!!!")
-# 		break
-# 	turn = 'O' if turn == 'X' else 'X'
+
 printBoard(tictacBoard)
 while True:
 	player_input = int(input("Input Position: "))
