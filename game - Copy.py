@@ -1,53 +1,67 @@
 import time
 import random
-from util import node, edge_move
 
-def non_terminal(state):
-	return (-1 in state)
+class node:
+	def __init__(self,state,parent,player):
+		self.board_state = state
+		self.parent = parent
+		self.children = []
+		self.is_visited = False
+		self.visits = 0
+		self.wins = 0
+		self.ai_player = player
+		self.player = player
+
+	def generate_children(self):
+		for i in range(len(self.board_state)):
+			copy = self.board_state.copy()
+			if self.board_state[i] == -1:
+				copy[i] = 1 if self.player == 1 else 0
+				child_player = 1 - self.player
+				self.children.append(node(copy,self,child_player))
+
+def non_terminal(node):
+	return -1 in node.board_state
 
 def fully_expanded(node):
-	for edge in node.edges:
-		if edge.visits == 0:
+	for c in node.children:
+		if c.is_visitted == False:
 			return False
 	return True
 
 def pick_univisted(node):
-	for edge in node.edges:
-		if edge.visits == 0:
-			return edge
+	for c in node.children:
+		if c.is_visitted == False:
+			return c
 	return False
 
 def best_uct(node):
 	best_winrate = 0
-	best_edge = 0
-	for edge in node.edges:
-		if edge.visits != 0:
-			winrate = edge.wins/edge.visits
+	best_node = 0
+	for c in node.children:
+		if c.visits != 0:
+			winrate = c.wins/c.visits
 		else:
 			winrate = 0
 		if winrate > best_winrate:
-			best_edge = edge
+			best_node = c
 			best_winrate = winrate
-	if best_edge == 0:
-		return random.choice(node.edges)
-	return best_edge
+	if best_node == 0:
+		return random.choice(node.children)
+	return best_node
 
 def traverse(node):
-    if fully_expanded(node):
-    	return best_uct(node)
+    while fully_expanded(node):	
+        node = best_uct(node)
+    n = pick_univisted(node) 
+    if n:
+    	return n
     else:
-    	return pick_univisted(node)  # in case no children are present / node is terminal 
+    	return node # in case no children are present / node is terminal 
 
-def generate_moves(state):
-	possible_moves = []
-	for i in range(len(state)):
-		if state[i] == -1:
-			possible_moves.append(i)
-	return possible_moves
-
-def rollout_policy(state):
-	moves = generate_moves(state)
-	return random.choice(moves)
+def rollout_policy(node):
+	node.generate_children()
+	return random.choice(node.children)
 
 def check_win(board):
 	if board[0] == board[1] and board[1] == board[2]:
@@ -72,42 +86,39 @@ def check_win(board):
 		else:
 			return 2
 
-def result(state, player):
-	win = check_win(state)
-	return int(win == player)
+def result(node):
+	win = check_win(node.board_state)
+	if win == node.ai_player:
+		return 1
+	else:
+		return 0
 
-def make_move(move, player, state):
-	state[move] = player
+def rollout(node):
+	node.is_visited = True
+	while non_terminal(node):
+		node = rollout_policy(node)
+	return result(node) 
 
-def rollout(edge,board_state):
-	player = edge.player
-	new_board_state = board_state.copy()
-	make_move(edge.move, player, new_board_state)
-	player = 1 - player
-	edge.visits += 1
-	while non_terminal(new_board_state):
-		move = rollout_policy(new_board_state)
-		make_move(move,player,new_board_state)
-		player = 1 - player
-	return result(new_board_state, edge.player) 
-
-def backpropagate(edge, result):
-	edge.wins += result
+def backpropagate(node, result):
+	if node.parent == None:
+		return
+	node.wins += result
+	node.visits += 1 
+	backpropagate(node.parent, result)
 
 def monte_carlo_tree_search(root, allowed_time):
 	start = time.time()
+	i=0
 	while time.time() - start <= allowed_time:
-		edge = traverse(root) # edge = unvisited node 
-		simulation_result = rollout(edge,root.board_state)
-		backpropagate(edge, simulation_result)
-
+		leaf = traverse(root) # leaf = unvisited node 
+		simulation_result = rollout(leaf)
+		backpropagate(leaf, simulation_result)
 	return best_uct(root)
 
 def ai_play(board,ai_player):
 	root = node(board,None,ai_player)
-	edge = monte_carlo_tree_search(root,5)
-	make_move(edge.move, ai_player, root.board_state)
-	return root.board_state
+	child = monte_carlo_tree_search(root,5)
+	return child.board_state
 
 def printBoard(board):
 	for i in range(1,10):
