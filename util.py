@@ -9,6 +9,9 @@ class node:
 		for i in range(len(self.board_state)):	
 			if self.board_state[i] == -1:
 				self.edges.append(edge_move(i,player))
+
+	def rank_edges(self):
+		pass
 	
 
 
