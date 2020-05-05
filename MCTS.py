@@ -1,3 +1,7 @@
+import time
+import random
+
+
 class MCTS:
 	def non_terminal(self, state):
 		return (-1 in state)
@@ -30,10 +34,10 @@ class MCTS:
 		return best_edge
 
 	def traverse(self, node):
-	    if fully_expanded(node):
-	    	return best_uct(node)
+	    if self.fully_expanded(node):
+	    	return self.best_uct(node)
 	    else:
-	    	return pick_univisted(node)  # in case no children are present / node is terminal 
+	    	return self.pick_univisted(node)  # in case no children are present / node is terminal 
 
 	def generate_moves(self, state):
 		possible_moves = []
@@ -43,7 +47,7 @@ class MCTS:
 		return possible_moves
 
 	def rollout_policy(self, state):
-		moves = generate_moves(state)
+		moves = self.generate_moves(state)
 		return random.choice(moves)
 
 	def check_win(self, board):
@@ -70,23 +74,23 @@ class MCTS:
 				return 2
 
 	def result(self, state, player):
-		win = check_win(state)
+		win = self.check_win(state)
 		return int(win == player)
 
 	def make_move(self, move, player, state):
 		state[move] = player
 
-	def rollout(self, edge,board_state):
+	def rollout(self, edge, board_state):
 		player = edge.player
 		new_board_state = board_state.copy()
-		make_move(edge.move, player, new_board_state)
+		self.make_move(edge.move, player, new_board_state)
 		player = 1 - player
 		edge.visits += 1
-		while non_terminal(new_board_state):
-			move = rollout_policy(new_board_state)
-			make_move(move,player,new_board_state)
+		while self.non_terminal(new_board_state):
+			move = self.rollout_policy(new_board_state)
+			self.make_move(move,player,new_board_state)
 			player = 1 - player
-		return result(new_board_state, edge.player) 
+		return self.result(new_board_state, edge.player) 
 
 	def backpropagate(self, edge, result):
 		edge.wins += result
@@ -94,14 +98,8 @@ class MCTS:
 	def monte_carlo_tree_search(self, root, allowed_time):
 		start = time.time()
 		while time.time() - start <= allowed_time:
-			edge = traverse(root) # edge = unvisited node 
-			simulation_result = rollout(edge,root.board_state)
-			backpropagate(edge, simulation_result)
+			edge = self.traverse(root) # edge = unvisited node 
+			simulation_result = self.rollout(edge,root.board_state)
+			self.backpropagate(edge, simulation_result)
 
-		return best_uct(root)
-
-	def ai_play(self, board,ai_player):
-		root = node(board,None,ai_player)
-		edge = monte_carlo_tree_search(root,5)
-		make_move(edge.move, ai_player, root.board_state)
-		return root.board_state
+		return self.best_uct(root)
