@@ -1,14 +1,14 @@
 import time
 import random
 
-
 class MCTS:
 	def non_terminal(self, state):
 		return (-1 in state)
 
 	def fully_expanded(self, node):
-		for edge in node.edges:
-			if edge.visits == 0:
+		half = int(len(node.edges)/2)
+		for i in range(half):
+			if node.edges[i].visits == 0:
 				return False
 		return True
 
