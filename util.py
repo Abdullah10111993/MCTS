@@ -1,7 +1,8 @@
 class node:
-	def __init__(self,state,parent, player):
+	def __init__(self, state, parent, player):
 		self.board_state = state
 		self.parent = parent
+		self.player = player
 		self.edges = []
 		self.create_edges(player)
 		self.rank_edges()
@@ -12,7 +13,7 @@ class node:
 				self.edges.append(edge_move(i,player))
 
 	def rank_edges(self):
-		position_rank = [3,2,3,2,4,2,3,2,3]
+		position_rank = [3,2,3,2,4,2,3,2,3] # probability
 		best_move = 0
 		for i in range(len(self.edges)):
 		    x = self.edges[i]
@@ -33,4 +34,4 @@ class edge_move:
 		self.move = move
 		self.visits = 0
 		self.wins = 0
-		self.player = player
+		self.child = None
