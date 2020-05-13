@@ -6,7 +6,7 @@ mcts = MCTS()
 def ai_play(board,ai_player):
 	root = node(board,None,ai_player)
 	# print(root.board_state)
-	edge = mcts.monte_carlo_tree_search(root,5)
+	edge = mcts.monte_carlo_tree_search(root,0.5)
 	# print(root.board_state)
 	mcts.make_move(edge.move, ai_player, root.board_state)
 	return root.board_state

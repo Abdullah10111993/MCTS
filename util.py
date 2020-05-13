@@ -13,7 +13,7 @@ class node:
 				self.edges.append(edge_move(i,player))
 
 	def rank_edges(self):
-		position_rank = [3,2,3,2,4,2,3,2,3] # probability
+		position_rank = [0.125,0.083,0.125,0.083,0.167,0.083,0.125,0.083,0.125] # probability
 		best_move = 0
 		for i in range(len(self.edges)):
 		    x = self.edges[i]

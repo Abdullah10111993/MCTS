@@ -1,23 +1,11 @@
 import time
 import random
 from util import node as Node
+import math
 
 class MCTS:
 	def non_terminal(self, state):
 		return (-1 in state)
-
-	def fully_expanded(self, node): # use puct
-		half = int(len(node.edges)/2)
-		for i in range(half):
-			if node.edges[i].visits == 0:
-				return False
-		return True
-
-	def pick_univisted(self, node):
-		for edge in node.edges:
-			if edge.visits == 0:
-				return edge
-		return False
 
 	def best_uct(self, node):
 		best_winrate = 0
@@ -34,20 +22,37 @@ class MCTS:
 			return random.choice(node.edges)
 		return best_edge
 
-	def traverse(self, node): 
-	    if self.fully_expanded(node):
-	    	edge = self.best_uct(node)
-	    	edge.visits += 1
-	    	if edge.child:
-	    		edge, node = traverse(edge.child)
-	    	return edge, node
-	    else:
-	    	edge = self.pick_univisted(node)
-	    	edge.visits += 1
-	    	if edge.child:
-	    		edge, node = traverse(edge.child)
-	    	return edge, node
+	def c_puct(self, node, edge):
+		N_s_b = 0
+		p = [0.125,0.083,0.125,0.083,0.167,0.083,0.125,0.083,0.125]
+		
+		for e in node.edges:
+			N_s_b += e.visits
+		
+		if N_s_b == 0 or edge.visits == 0:
+			return p[edge.move]
+		
+		P_s_a = p[edge.move]
+		Q_s_a = 0
+		
+		if edge.visits != 0:
+			Q_s_a = edge.wins / edge.visits
 
+		return Q_s_a + 4*P_s_a*(math.sqrt(N_s_b)/(1+edge.visits))
+
+
+	def traverse(self, node):
+		edge_puct = []
+		for edge in node.edges:
+			edge_puct.append(self.c_puct(node,edge))
+
+		edge_index = edge_puct.index(max(edge_puct))
+		node.edges[edge_index].visits += 1
+		edge = node.edges[edge_index]
+		if edge.child:
+			edge, node = traverse(edge.child)
+		return edge, node
+	    
 	def generate_moves(self, state):
 		possible_moves = []
 		for i in range(len(state)):
@@ -62,8 +67,6 @@ class MCTS:
 		for i in range(1,len(moves)):
 			if position_rank[moves[i]] > position_rank[best_move]:
 				best_move = moves[i]
-		# return random.choice(moves)
-		# print(best_move)
 		return best_move 
 
 	def check_win(self, board):
@@ -110,13 +113,12 @@ class MCTS:
 			# input()
 		return self.result(new_board_state, ai_player) 
 
-	def addNode(self,node):
-		for e in node.edges:
-			if e.visits == 6:
-				# print("adding")
-				board_state = node.board_state.copy() 
-				self.make_move(e.move, node.player, board_state)
-				e.children = Node(board_state, node, 1-node.player)
+	def addNode(self,node, edge): #change name
+		if edge.visits >= 6:
+			# print("adding")
+			board_state = node.board_state.copy() 
+			self.make_move(edge.move, node.player, board_state)
+			edge.children = Node(board_state, node, 1-node.player)
 
 	def backpropagate(self, node, result):
 		if node.parent == None:
@@ -126,19 +128,36 @@ class MCTS:
 				edge.wins += result
 		self.backpropagate(node.parent, result)
 
+	def print_tree(self,root):
+		print("Board:",root.board_state)
+		for edge in root.edges:
+			print("Edge Move:",edge.move)
+			print("Edge Wins:",edge.wins)
+			print("Edge Visits:",edge.visits)
+			# if edge.child:
+			# 	self.print_tree(edge.child)
+
 	def monte_carlo_tree_search(self, root, allowed_time):
 		start = time.time()
 		while time.time() - start <= allowed_time:
 			edge, node = self.traverse(root) # edge = unvisited node 
+			# print(edge.move)
 			# print(node.board_state)
 			simulation_result = self.rollout(edge, node.board_state, node.player, root.player) # after rollout add node to tree
+			# print(simulation_result)
 			# print(root.board_state)
 			# input()
-			self.addNode(node)
+			self.addNode(node, edge) # add node for the edge
 			# print(node.board_state)
 			# input()
-			self.backpropagate(node, simulation_result)
+			edge.wins += simulation_result
+			self.backpropagate(node, simulation_result) 
 			# print(node.board_state)
 			# input()
-		e = self.best_uct(root)
-		return e
+		self.print_tree(root)
+			# input()
+		edge_puct = []
+		for edge in node.edges:
+			edge_puct.append(self.c_puct(node,edge))
+		edge_index = edge_puct.index(max(edge_puct))
+		return node.edges[edge_index]
